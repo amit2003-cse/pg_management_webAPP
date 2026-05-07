@@ -1,206 +1,141 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { IndianRupee, Users, AlertCircle, CheckCircle } from 'lucide-react';
+import { IndianRupee, Users, AlertCircle, CheckCircle, TrendingDown, Wallet } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid 
+} from 'recharts';
 
 const Dashboard = () => {
-  const { tenants } = useApp();
+  const { tenants, expenses, loading } = useApp();
 
-  // Calculations
-  const totalTenants = tenants.length;
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Analyzing financials...</p>
+      </div>
+    );
+  }
+
   const totalRent = tenants.reduce((sum, t) => sum + t.rent, 0);
   const pendingRent = tenants.filter(t => t.pending).reduce((sum, t) => sum + t.rent, 0);
-  const paidRent = totalRent - pendingRent;
-  
-  const pendingCount = tenants.filter(t => t.pending).length;
-  const paidCount = totalTenants - pendingCount;
+  const collectedRent = totalRent - pendingRent;
+  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = collectedRent - totalExpenses;
+
+  const pieData = [
+    { name: 'Collected', value: collectedRent, color: '#2E7D5B' },
+    { name: 'Expenses', value: totalExpenses, color: '#E8804A' },
+    { name: 'Pending', value: pendingRent, color: '#8B1538' },
+  ];
 
   return (
-    <div className="dashboard-container animate-fade-in">
+    <motion.div className="dashboard-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <header className="page-header">
-        <h1>Dashboard</h1>
-        <p>Overview of your PG management</p>
+        <div className="header-content">
+          <h1>Dashboard</h1>
+          <p>Net Profit Analysis</p>
+        </div>
+        <div className="net-profit-badge glass">
+          <span>Net Profit:</span>
+          <span className={netProfit >= 0 ? 'text-success' : 'text-danger'}>₹{netProfit.toLocaleString()}</span>
+        </div>
       </header>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        <div className="card stat-card">
-          <div className="stat-icon primary">
-            <IndianRupee size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Total Rent</h3>
-            <p className="stat-value">₹{totalRent.toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-
-        <div className="card stat-card">
-          <div className="stat-icon danger">
-            <AlertCircle size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Pending Rent</h3>
-            <p className="stat-value text-danger">₹{pendingRent.toLocaleString('en-IN')}</p>
-            <span className="stat-sub">{pendingCount} Tenants pending</span>
-          </div>
-        </div>
-
-        <div className="card stat-card">
-          <div className="stat-icon success">
-            <CheckCircle size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Collected Rent</h3>
-            <p className="stat-value text-success">₹{paidRent.toLocaleString('en-IN')}</p>
-            <span className="stat-sub">{paidCount} Tenants paid</span>
-          </div>
-        </div>
-
-        <div className="card stat-card">
-          <div className="stat-icon warning">
-            <Users size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>Total Tenants</h3>
-            <p className="stat-value">{totalTenants}</p>
-          </div>
+      {/* Stats Pills Row */}
+      <div className="stats-scroll-area">
+        <div className="stats-flex">
+          {[
+            { icon: <Wallet size={18} />, label: 'Profit', value: `₹${netProfit.toLocaleString()}`, color: 'primary' },
+            { icon: <TrendingDown size={18} />, label: 'Expenses', value: `₹${totalExpenses.toLocaleString()}`, color: 'warning' },
+            { icon: <CheckCircle size={18} />, label: 'Collected', value: `₹${collectedRent.toLocaleString()}`, color: 'success' },
+            { icon: <AlertCircle size={18} />, label: 'Pending', value: `₹${pendingRent.toLocaleString()}`, color: 'danger' }
+          ].map((stat, i) => (
+            <motion.div key={i} className="stat-pill glass" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }}>
+              <div className={`pill-icon ${stat.color}`}>{stat.icon}</div>
+              <div className="pill-info">
+                <span className="pill-label">{stat.label}</span>
+                <span className={`pill-value ${stat.label === 'Expenses' ? 'orange' : stat.label === 'Pending' ? 'red' : stat.label === 'Collected' ? 'green' : ''}`}>{stat.value}</span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
 
-      {/* Visual Impact Section */}
-      <div className="card visual-section glass">
-        <h2>Rent Collection Status</h2>
-        <div className="progress-container">
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${(paidRent / totalRent) * 100}%` }}
-            ></div>
+      <div className="charts-grid">
+        <motion.div className="card glass chart-box" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+          <h3>Cash Flow Distribution</h3>
+          <div className="chart-h">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                  {pieData.map((entry, index) => <Cell key={index} fill={entry.color} stroke="none" />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)' }} />
+                <Legend iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          <div className="progress-labels">
-            <span>Collected: {Math.round((paidRent / totalRent) * 100)}%</span>
-            <span>Pending: {Math.round((pendingRent / totalRent) * 100)}%</span>
+        </motion.div>
+
+        <motion.div className="card glass chart-box" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
+          <h3>Revenue vs Expense</h3>
+          <div className="chart-h">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={[
+                { name: 'Income', amount: collectedRent, color: '#2E7D5B' },
+                { name: 'Expense', amount: totalExpenses, color: '#E8804A' }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-muted)" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{fill: 'var(--primary-light)'}} contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-main)' }} />
+                <Bar dataKey="amount" radius={[4, 4, 0, 0]} barSize={40}>
+                   <Cell fill="#2E7D5B" />
+                   <Cell fill="#E8804A" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
-
-
 
       <style>{`
-        .dashboard-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-        }
-        .page-header h1 {
-          font-size: 2rem;
-          margin-bottom: 0.25rem;
-        }
-        .page-header p {
-          color: var(--text-muted);
-        }
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 1.5rem;
-        }
-        .stat-card {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        .stat-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .stat-icon.primary { background-color: var(--primary-light); color: var(--primary); }
-        .stat-icon.danger { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .stat-icon.success { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .stat-icon.warning { background-color: rgba(245, 158, 11, 0.1); color: var(--warning); }
-        
-        .stat-info h3 {
-          font-size: 0.875rem;
-          color: var(--text-muted);
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-        }
-        .stat-value {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--text-main);
-        }
-        .stat-sub {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-        .text-danger { color: var(--danger); }
+        .dashboard-container { display: flex; flex-direction: column; gap: 1.5rem; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; }
+        .net-profit-badge { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: var(--radius-xl); font-weight: 700; font-size: 0.85rem; }
         .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
 
-        .visual-section {
-          padding: 2rem;
-        }
-        .visual-section h2 {
-          font-size: 1.25rem;
-          margin-bottom: 1.5rem;
-        }
-        .progress-container {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        .progress-bar {
-          height: 12px;
-          background-color: var(--border);
-          border-radius: var(--radius-xl);
-          overflow: hidden;
-        }
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, var(--primary), var(--secondary));
-          border-radius: var(--radius-xl);
-          transition: width 1s ease-out;
-        }
-        .progress-labels {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.875rem;
-          color: var(--text-muted);
-        }
+        .stats-scroll-area { margin: 0 -1.25rem; padding: 0.5rem 1.25rem; overflow-x: auto; scrollbar-width: none; }
+        .stats-scroll-area::-webkit-scrollbar { display: none; }
+        .stats-flex { display: flex; gap: 0.75rem; width: max-content; }
+        
+        .stat-pill { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; min-width: 140px; border-radius: var(--radius-md); background: var(--bg-card); }
+        .pill-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .pill-icon.primary { background: var(--primary-light); color: var(--primary); }
+        .pill-icon.warning { background: var(--secondary-light); color: var(--secondary); }
+        .pill-icon.success { background: rgba(46, 125, 91, 0.1); color: var(--success); }
+        .pill-icon.danger { background: var(--primary-light); color: var(--danger); }
+        
+        .pill-info { display: flex; flex-direction: column; }
+        .pill-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        .pill-value { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+        .pill-value.red { color: var(--danger); }
+        .pill-value.green { color: var(--success); }
+        .pill-value.orange { color: var(--secondary); }
 
-        .list-section h2 {
-          font-size: 1.25rem;
-          margin-bottom: 1rem;
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .chart-box { padding: 1.25rem; }
+        .chart-box h3 { font-size: 1rem; margin-bottom: 1.25rem; }
+
+        @media (max-width: 768px) {
+          .charts-grid { grid-template-columns: 1fr; }
         }
-        .table-responsive {
-          overflow-x: auto;
-        }
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-        .data-table th, .data-table td {
-          padding: 1rem;
-          border-bottom: 1px solid var(--border);
-        }
-        .data-table th {
-          color: var(--text-muted);
-          font-weight: 500;
-          font-size: 0.875rem;
-        }
-        .badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: var(--radius-xl);
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .badge-danger { background-color: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .badge-success { background-color: rgba(16, 185, 129, 0.1); color: var(--success); }
       `}</style>
-    </div>
+    </motion.div>
   );
 };
 

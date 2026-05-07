@@ -1,226 +1,136 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { MessageCircle, CheckCircle, IndianRupee } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, CheckCircle, IndianRupee, Bell, AlertCircle, FileText } from 'lucide-react';
+import { generateRentReceipt } from '../utils/pdfGenerator';
 
 const Reminders = () => {
-  const { tenants, markAsPaid } = useApp();
+  const { tenants, markAsPaid, loading } = useApp();
   
   const pendingTenants = tenants.filter(t => t.pending);
 
   const getDueStatus = (dueDateStr) => {
     const dueDate = new Date(dueDateStr);
     const today = new Date();
-    dueDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
     
-    const diffTime = today - dueDate;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays > 0) {
-      return { type: 'overdue', label: `${diffDays} Days Extended` };
-    } else if (diffDays < 0) {
-      return { type: 'upcoming', label: `${Math.abs(diffDays)} Days Left` };
-    } else {
-      return { type: 'today', label: 'Due Today' };
-    }
+    if (diffDays >= 5) return { type: 'critical', label: `${diffDays}d Overdue` };
+    if (diffDays > 0) return { type: 'overdue', label: `${diffDays}d Overdue` };
+    if (diffDays === 0) return { type: 'today', label: 'Due Today' };
+    return { type: 'upcoming', label: `${Math.abs(diffDays)}d Left` };
   };
 
   const sendWhatsAppReminder = (tenant) => {
     const status = getDueStatus(tenant.dueDate);
-    let message = `Hi ${tenant.name},\n\nThis is a reminder that your rent of ₹${tenant.rent} was due on ${tenant.dueDate}.`;
+    let message = `Hi ${tenant.name},\n\nReminder: Your rent of ₹${tenant.rent} was due on ${tenant.dueDate}.`;
+    if (status.type === 'critical' || status.type === 'overdue') message += ` It is overdue by ${status.label}.`;
+    else if (status.type === 'today') message += ` It is due today.`;
+    message += `\n\nPlease clear it soon.\n\nThank you!`;
     
-    if (status.type === 'overdue') {
-      message += ` It has been overdue by ${status.label}.`;
-    } else if (status.type === 'upcoming') {
-      message += ` You have ${status.label}.`;
-    } else {
-      message += ` It is due today.`;
-    }
-    
-    message += `\n\nPlease clear the pending amount as soon as possible.\n\nThank you!`;
-    
-    let phone = tenant.phone;
-    if (!phone.startsWith('91') && phone.length === 10) {
-      phone = '91' + phone;
-    }
-    
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/91${tenant.phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   return (
-    <div className="reminders-container animate-fade-in">
+    <div className="reminders-page">
       <header className="page-header">
-        <h1>Rent Reminders</h1>
-        <p>Send quick WhatsApp reminders to tenants with pending dues</p>
+        <div className="header-content">
+          <h1>Reminders</h1>
+          <p>Pending rent collections</p>
+        </div>
+        <div className="count-badge glass">
+          <Bell size={16} />
+          <span>{pendingTenants.length} Pending</span>
+        </div>
       </header>
 
-      <div className="card glass">
-        <h2>Pending Collections</h2>
-        
+      <div className="reminders-list">
         {pendingTenants.length === 0 ? (
-          <div className="empty-state">
-            <CheckCircle size={48} color="var(--success)" />
-            <h3>All caught up!</h3>
-            <p>No pending rent collections at the moment.</p>
-          </div>
+          <motion.div className="card glass empty-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <CheckCircle size={48} className="text-success" />
+            <h3>All Clear!</h3>
+            <p>No pending collections at the moment.</p>
+          </motion.div>
         ) : (
-          <div className="reminders-list">
-            {pendingTenants.map((tenant) => {
+          <AnimatePresence mode="popLayout">
+            {pendingTenants.map((tenant, i) => {
               const status = getDueStatus(tenant.dueDate);
               return (
-                <div key={tenant.id} className="reminder-item">
-                  <div className="tenant-info">
-                    <h3>{tenant.name}</h3>
-                    <p className="phone-no">WhatsApp: {tenant.phone}</p>
-                    <div className="amount-due">
-                      <IndianRupee size={16} />
-                      <span>₹{tenant.rent.toLocaleString('en-IN')}</span>
-                      <span className="due-date">Due: {tenant.dueDate}</span>
-                      
-                      <span className={`status-badge badge-${status.type}`}>
-                        {status.label}
-                      </span>
+                <motion.div 
+                  key={tenant.id} 
+                  className={`card reminder-card glass status-border-${status.type}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                >
+                  <div className="reminder-main">
+                    <div className="t-info">
+                      <h3>{tenant.name}</h3>
+                      <p className="phone">WhatsApp: {tenant.phone}</p>
+                    </div>
+                    <div className={`status-tag badge-${status.type}`}>
+                      {status.label}
                     </div>
                   </div>
-                  
+
+                  <div className="reminder-details">
+                    <div className="d-item">
+                      <span className="l">Amount</span>
+                      <span className="v">₹{tenant.rent.toLocaleString()}</span>
+                    </div>
+                    <div className="d-item">
+                      <span className="l">Due Date</span>
+                      <span className="v">{tenant.dueDate}</span>
+                    </div>
+                  </div>
+
                   <div className="reminder-actions">
-                    <button 
-                      className="btn btn-primary reminder-btn"
-                      onClick={() => sendWhatsAppReminder(tenant)}
-                    >
+                    <button className="wa-btn-full" onClick={() => sendWhatsAppReminder(tenant)}>
                       <MessageCircle size={18} />
-                      Send Reminder
+                      Send WhatsApp
                     </button>
-                    
-                    <button 
-                      className="btn btn-secondary paid-btn"
-                      onClick={() => markAsPaid(tenant.id)}
-                    >
+                    <button className="paid-btn-outline" onClick={() => markAsPaid(tenant.id)}>
                       Mark Paid
                     </button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </AnimatePresence>
         )}
       </div>
 
       <style>{`
-        .reminders-container {
-          display: flex;
-          flex-direction: column;
-          gap: 2rem;
-        }
-        .glass h2 {
-          font-size: 1.25rem;
-          margin-bottom: 1.5rem;
-          color: var(--text-main);
-        }
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem 0;
-          gap: 1rem;
-          text-align: center;
-        }
-        .empty-state p {
-          color: var(--text-muted);
-        }
-        .reminders-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .reminder-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.25rem;
-          background-color: rgba(15, 23, 42, 0.3);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          transition: var(--transition);
-        }
-        .reminder-item:hover {
-          border-color: rgba(99, 102, 241, 0.4);
-          transform: translateX(5px);
-        }
-        .tenant-info h3 {
-          font-size: 1.125rem;
-          margin-bottom: 0.25rem;
-        }
-        .phone-no {
-          font-size: 0.875rem;
-          color: var(--text-muted);
-          margin-bottom: 0.5rem;
-        }
-        .amount-due {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-          font-weight: 600;
-        }
-        .due-date {
-          margin-left: 1rem;
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          font-weight: 400;
-          background-color: rgba(255, 255, 255, 0.05);
-          padding: 0.25rem 0.5rem;
-          border-radius: var(--radius-sm);
-        }
+        .reminders-page { display: flex; flex-direction: column; gap: 1.5rem; }
+        .count-badge { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: var(--radius-xl); font-size: 0.85rem; font-weight: 700; color: var(--primary); }
         
-        .status-badge {
-          margin-left: 1rem;
-          font-size: 0.75rem;
-          font-weight: 600;
-          padding: 0.25rem 0.5rem;
-          border-radius: var(--radius-sm);
-        }
-        .badge-overdue {
-          color: #ef4444;
-          background-color: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-        .badge-upcoming {
-          color: #3b82f6;
-          background-color: rgba(59, 130, 246, 0.1);
-          border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-        .badge-today {
-          color: #f59e0b;
-          background-color: rgba(245, 158, 11, 0.1);
-          border: 1px solid rgba(245, 158, 11, 0.2);
-        }
+        .reminders-list { display: flex; flex-direction: column; gap: 1rem; }
+        .reminder-card { padding: 1.25rem; border-left: 4px solid transparent; }
+        
+        .reminder-main { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
+        .t-info h3 { font-size: 1.125rem; margin-bottom: 0.15rem; }
+        .t-info .phone { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .status-tag { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .badge-critical { background: var(--danger); color: white; }
+        .badge-overdue { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-today { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .badge-upcoming { background: var(--primary-light); color: var(--primary); }
 
-        .reminder-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-        .reminder-btn {
-          background: linear-gradient(135deg, #25D366, #128C7E); /* WhatsApp Green */
-        }
-        .reminder-btn:hover {
-          box-shadow: 0 10px 20px -10px rgba(37, 211, 102, 0.5);
-        }
-        
-        @media (max-width: 768px) {
-          .reminder-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          .reminder-actions {
-            width: 100%;
-          }
-          .reminder-btn, .paid-btn {
-            flex: 1;
-          }
-        }
+        .reminder-details { display: flex; gap: 2rem; margin-bottom: 1.25rem; padding: 0.75rem; background: var(--bg-main); border-radius: var(--radius-sm); }
+        .d-item { display: flex; flex-direction: column; gap: 2px; }
+        .d-item .l { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+        .d-item .v { font-size: 0.9rem; font-weight: 700; }
+
+        .reminder-actions { display: flex; gap: 0.75rem; }
+        .wa-btn-full { flex: 2; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #25D366; color: white; border: none; padding: 0.75rem; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; }
+        .paid-btn-outline { flex: 1; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-main); padding: 0.75rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; }
+
+        .status-border-critical { border-left-color: var(--danger) !important; }
+        .status-border-today { border-left-color: var(--warning) !important; }
+        .empty-state { padding: 3rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+        .text-success { color: var(--success); }
       `}</style>
     </div>
   );
