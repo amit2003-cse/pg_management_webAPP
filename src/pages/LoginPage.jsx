@@ -1,289 +1,110 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
-import { Shield, Mail, Lock, LogIn, Info } from 'lucide-react';
+import { LogIn, ShieldCheck } from 'lucide-react';
+
+const GoogleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    <path fill="none" d="M0 0h48v48H0z"/>
+  </svg>
+);
 
 const LoginPage = () => {
   const { login } = useApp();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    login(email, password);
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await login();
+    } catch (err) {
+      alert("Login failed. Please check your internet.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <motion.div 
-          className="login-card glass"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="login-header">
-            <div className="logo-box">
-              <Shield size={32} className="logo-icon" />
-            </div>
-            <h1>PG Manager</h1>
-            <p>Your complete property management suite</p>
+    <div className="login-container">
+      <motion.div 
+        className="login-card glass"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="brand-header">
+          <div className="logo-badge">
+            <ShieldCheck size={32} className="text-primary" />
           </div>
+          <h1>Tulip Stays PG</h1>
+          <p>The Most Trusted PG Management Suite</p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="input-group">
-              <label>Email Address</label>
-              <div className="input-field-modern">
-                <Mail size={18} className="icon" />
-                <input 
-                  type="text" 
-                  placeholder="admin@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+        <div className="login-visual">
+          <div className="blob-bg"></div>
+          <img src="https://img.icons8.com/clouds/200/home-address.png" alt="home" />
+        </div>
 
-            <div className="input-group">
-              <label>Password</label>
-              <div className="input-field-modern">
-                <Lock size={18} className="icon" />
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <motion.button 
-              type="submit" 
-              className="btn-login-premium"
-              whileHover={{ scale: 1.01, translateY: -2 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Sign In to Dashboard <LogIn size={18} />
-            </motion.button>
-          </form>
-
-          <div className="login-footer">
-            <div className="demo-hint">
-              <Info size={14} />
-              <span>Use <b>admin</b> / <b>1234</b> for demo access</span>
-            </div>
+        <div className="auth-section">
+          <p className="auth-hint">Admin Secure Login</p>
+          <motion.button 
+            className="btn-google-auth"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleGoogleLogin}
+            disabled={loading}
+          >
+            <GoogleIcon />
+            {loading ? "Authenticating..." : "Continue with Google"}
+          </motion.button>
+          
+          <div className="security-note">
+            <ShieldCheck size={12} />
+            <span>Encrypted OAuth 2.0 Secure Session</span>
           </div>
-        </motion.div>
-      </div>
-
-      <div className="bg-decoration">
-        <div className="circle circle-1"></div>
-        <div className="circle circle-2"></div>
-      </div>
+        </div>
+      </motion.div>
 
       <style>{`
-        .login-page {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          width: 100%;
-          overflow: hidden;
-          background: var(--bg-main);
+        .login-container { 
+          height: 100vh; display: flex; align-items: center; justify-content: center; 
+          background: var(--bg-main); padding: 1.5rem; overflow: hidden;
+        }
+        .login-card { 
+          width: 100%; max-width: 420px; padding: 2.5rem; text-align: center;
+          display: flex; flex-direction: column; gap: 2rem; border-radius: 2rem;
+        }
+        .brand-header h1 { font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.25rem; }
+        .brand-header p { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .logo-badge { 
+          width: 60px; height: 60px; background: var(--primary-light); 
+          border-radius: 1.25rem; display: flex; align-items: center; 
+          justify-content: center; margin: 0 auto 1rem;
         }
 
-        .login-container {
-          position: relative;
-          z-index: 10;
-          width: 100%;
-          display: flex;
-          justify-content: center;
-          padding: 2rem;
+        .login-visual { position: relative; padding: 1rem 0; }
+        .blob-bg { 
+          position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+          width: 150px; height: 150px; background: var(--primary); 
+          filter: blur(50px); opacity: 0.15; border-radius: 50%; z-index: -1;
         }
-
-        .login-card {
-          width: 100%;
-          max-width: 440px;
-          padding: 3rem;
-          display: flex;
-          flex-direction: column;
-          gap: 2.5rem;
-          border-radius: 2rem;
-          box-shadow: var(--shadow-lg);
-          background: var(--bg-glass);
-          border: 1px solid var(--border);
-          backdrop-filter: blur(20px);
+        
+        .btn-google-auth { 
+          width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+          padding: 1rem; background: #ffffff; color: #1f2937; border: 1px solid #e5e7eb;
+          border-radius: var(--radius); font-weight: 700; cursor: pointer;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-size: 0.95rem;
         }
-
-        .login-header {
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .logo-box {
-          width: 64px;
-          height: 64px;
-          background: var(--bg-card);
-          border-radius: 1.25rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 10px 20px rgba(139, 21, 56, 0.15);
-          margin-bottom: 0.5rem;
-          border: 1px solid var(--border);
-        }
-
-        .logo-icon {
-          color: var(--primary);
-        }
-
-        .login-header h1 {
-          font-size: 2rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          color: var(--text-main);
-        }
-
-        .login-header p {
-          color: var(--text-muted);
-          font-size: 0.95rem;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-
-        .input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .input-group label {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          margin-left: 0.25rem;
-        }
-
-        .input-field-modern {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          padding: 0 1.25rem;
-          border-radius: 1rem;
-          transition: all 0.2s ease;
-        }
-
-        .input-field-modern:focus-within {
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px var(--primary-light);
-        }
-
-        .input-field-modern .icon {
-          color: var(--text-muted);
-        }
-
-        .input-field-modern input {
-          flex: 1;
-          padding: 1.1rem 0;
-          background: transparent;
-          border: none;
-          color: var(--text-main);
-          font-size: 1rem;
-          font-weight: 500;
-          outline: none;
-        }
-
-        .btn-login-premium {
-          width: 100%;
-          padding: 1.1rem;
-          background: var(--logo-gradient);
-          color: white;
-          border: none;
-          border-radius: 1rem;
-          font-weight: 700;
-          font-size: 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          cursor: pointer;
-          box-shadow: 0 10px 25px rgba(139, 21, 56, 0.3);
-          margin-top: 0.5rem;
-        }
-
-        .login-footer {
-          display: flex;
-          justify-content: center;
-        }
-
-        .demo-hint {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          border-radius: 1rem;
-          font-size: 0.875rem;
-          color: var(--text-muted);
-          background: var(--bg-main);
-          border: 1px dashed var(--border);
-        }
-
-        .demo-hint b {
-          color: var(--text-main);
-        }
-
-        .bg-decoration {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          z-index: 1;
-          pointer-events: none;
-        }
-
-        .circle {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.3;
-        }
-
-        .circle-1 {
-          top: -10%;
-          right: -10%;
-          width: 500px;
-          height: 500px;
-          background: var(--primary);
-        }
-
-        .circle-2 {
-          bottom: -10%;
-          left: -10%;
-          width: 400px;
-          height: 400px;
-          background: var(--secondary);
-        }
-
-        @media (max-width: 480px) {
-          .login-card {
-            padding: 2rem;
-          }
-          .login-header h1 {
-            font-size: 1.75rem;
-          }
+        .btn-google-auth:disabled { opacity: 0.7; cursor: not-allowed; }
+        
+        .security-note { 
+          display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+          margin-top: 1rem; color: var(--text-muted); font-size: 0.7rem; font-weight: 600;
+          text-transform: uppercase; letter-spacing: 0.05em;
         }
       `}</style>
     </div>

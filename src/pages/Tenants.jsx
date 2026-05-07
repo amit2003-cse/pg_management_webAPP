@@ -147,8 +147,22 @@ const Tenants = () => {
         .search-container input { flex: 1; background: transparent; border: none; color: var(--text-main); outline: none; font-size: 0.95rem; }
         .clear-icon { color: var(--text-muted); cursor: pointer; }
 
-        .tenants-list { display: flex; flex-direction: column; gap: 1rem; }
-        .tenant-card-modern { padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border); }
+        .tenants-list { 
+          display: grid; 
+          grid-template-columns: 1fr; 
+          gap: 1.25rem; 
+        }
+
+        @media (min-width: 1025px) {
+          .tenants-list {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        .tenant-card-modern { 
+          padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border); 
+          display: flex; flex-direction: column; justify-content: space-between;
+        }
         
         .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
         .tenant-meta h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.15rem; text-transform: capitalize; }

@@ -68,22 +68,23 @@ h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; color: var(--text-main); }
 
 .main-content {
   flex: 1;
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.auth-content {
-  flex: 1;
+  padding: 2.5rem;
   width: 100%;
+  transition: all 0.3s ease;
 }
 
-@media (max-width: 768px) {
-  .app-container { display: block; }
+@media (min-width: 1025px) {
+  .main-content {
+    margin-left: 280px; /* Space for Sidebar */
+    max-width: calc(100% - 280px);
+  }
+}
+
+@media (max-width: 1024px) {
   .main-content {
     padding: 1.25rem;
-    padding-top: 80px;
-    padding-bottom: 120px;
+    margin-top: 64px; /* Mobile Header */
+    margin-bottom: 72px; /* Bottom Nav */
   }
 }
 
