@@ -1,4 +1,4 @@
-# 🏠 PG Management System - Tulip Stays
+# 🏠 PG Management System
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Firebase](https://img.shields.io/badge/firebase-%23039BE5.svg?style=for-the-badge&logo=firebase)
